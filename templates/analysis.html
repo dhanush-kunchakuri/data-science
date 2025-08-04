@@ -1,0 +1,270 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2">Data Analysis</h1>
+    <div class="btn-toolbar mb-2 mb-md-0">
+        <a href="{{ url_for('download_data') }}" class="btn btn-sm btn-outline-secondary me-2">
+            <i class="bi bi-download"></i> Download Cleaned Data
+        </a>
+        <a href="{{ url_for('index') }}" class="btn btn-sm btn-outline-primary">
+            <i class="bi bi-upload"></i> Upload New File
+        </a>
+    </div>
+</div>
+
+<!-- Data Summary -->
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Data Summary</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3">
+                        <div class="card bg-light mb-3">
+                            <div class="card-body text-center">
+                                <h6 class="card-title">Rows</h6>
+                                <h4 class="card-text">{{ "{:,}".format(data_info.shape[0]) }}</h4>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card bg-light mb-3">
+                            <div class="card-body text-center">
+                                <h6 class="card-title">Columns</h6>
+                                <h4 class="card-text">{{ data_info.shape[1] }}</h4>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card bg-light mb-3">
+                            <div class="card-body text-center">
+                                <h6 class="card-title">Missing Values</h6>
+                                <h4 class="card-text">{{ data_info.missing_values.values()|sum }}</h4>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card bg-light mb-3">
+                            <div class="card-body text-center">
+                                <h6 class="card-title">File Type</h6>
+                                <h4 class="card-text">CSV</h4>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Data Cleaning Options -->
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Data Cleaning</h5>
+            </div>
+            <div class="card-body">
+                <form action="{{ url_for('clean_data') }}" method="POST">
+                    <h6>Handle Missing Values</h6>
+                    <div class="mb-3">
+                        <label class="form-label">Drop rows with missing values in:</label>
+                        <select class="form-select" name="drop_na_cols" multiple>
+                            <option value="all">All Columns</option>
+                            {% for col in data_info.columns %}
+                                {% if data_info.missing_values[col] > 0 %}
+                                    <option value="{{ col }}">{{ col }} ({{ data_info.missing_values[col] }} missing)</option>
+                                {% endif %}
+                            {% endfor %}
+                        </select>
+                        <div class="form-text">Hold Ctrl/Cmd to select multiple columns</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Fill remaining missing values with:</label>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="fill_na_strategy" id="fillMean" value="mean" checked>
+                            <label class="form-check-label" for="fillMean">
+                                Mean (for numeric columns) / Mode (for categorical)
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="fill_na_strategy" id="fillMedian" value="median">
+                            <label class="form-check-label" for="fillMedian">
+                                Median (for numeric columns) / Mode (for categorical)
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="fill_na_strategy" id="fillMode" value="mode">
+                            <label class="form-check-label" for="fillMode">
+                                Mode (for all columns)
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-funnel"></i> Clean Data
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Data Preview -->
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Data Preview</h5>
+                <span class="badge bg-secondary">First 10 rows</span>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive data-preview">
+                    <table class="table table-striped table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                {% for col in data_info.columns %}
+                                    <th>{{ col }} 
+                                        <small class="text-muted d-block">{{ data_info.data_types[col] }}</small>
+                                    </th>
+                                {% endfor %}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for row in sample_data %}
+                                <tr>
+                                    {% for col in data_info.columns %}
+                                        <td>{{ row[col]|default('NaN', true) }}</td>
+                                    {% endfor %}
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Visualizations -->
+{% if plot_paths %}
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Data Visualizations</h5>
+                </div>
+                <div class="card-body">
+                    {% if 'distribution' in plot_paths %}
+                        <div class="plot-container">
+                            <h6>Distribution of Numeric Columns</h6>
+                            <img src="{{ url_for('static', filename=plot_paths['distribution'].replace('static/', '')) }}" 
+                                 alt="Distribution Plot" class="plot-img">
+                        </div>
+                    {% endif %}
+                    
+                    {% if 'correlation' in plot_paths %}
+                        <div class="plot-container">
+                            <h6>Correlation Heatmap</h6>
+                            <img src="{{ url_for('static', filename=plot_paths['correlation'].replace('static/', '')) }}" 
+                                 alt="Correlation Heatmap" class="plot-img">
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+{% endif %}
+
+<!-- Data Information -->
+<div class="row">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Column Information</h5>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Column</th>
+                                <th>Data Type</th>
+                                <th>Missing Values</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for col in data_info.columns %}
+                                <tr>
+                                    <td>{{ col }}</td>
+                                    <td><span class="badge bg-secondary">{{ data_info.data_types[col] }}</span></td>
+                                    <td>
+                                        {% if data_info.missing_values[col] > 0 %}
+                                            <span class="badge bg-warning">{{ data_info.missing_values[col] }}</span>
+                                        {% else %}
+                                            <span class="badge bg-success">0</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-header">
+                <h5 class="mb-0">Quick Statistics</h5>
+            </div>
+            <div class="card-body">
+                <ul class="nav nav-tabs" id="statsTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="numeric-tab" data-bs-toggle="tab" data-bs-target="#numeric" type="button" role="tab">
+                            Numeric
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="categorical-tab" data-bs-toggle="tab" data-bs-target="#categorical" type="button" role="tab">
+                            Categorical
+                        </button>
+                    </li>
+                </ul>
+                <div class="tab-content p-3 border border-top-0 rounded-bottom" id="statsTabContent">
+                    <div class="tab-pane fade show active" id="numeric" role="tabpanel">
+                        <p class="text-muted">Numeric columns statistics will appear here after analysis.</p>
+                        <!-- Statistics will be populated by JavaScript -->
+                    </div>
+                    <div class="tab-pane fade" id="categorical" role="tabpanel">
+                        <p class="text-muted">Categorical columns statistics will appear here after analysis.</p>
+                        <!-- Statistics will be populated by JavaScript -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Add number formatting to large numbers
+    document.addEventListener('DOMContentLoaded', function() {
+        // Format numbers with commas
+        const numberFormat = (number) => {
+            return number.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+        };
+        
+        // Apply formatting to all elements with data-number attribute
+        document.querySelectorAll('[data-number]').forEach(el => {
+            el.textContent = numberFormat(parseInt(el.textContent));
+        });
+    });
+</script>
+{% endblock %}
