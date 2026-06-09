@@ -1,46 +1,62 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-    <h1 class="h2">Upload Your Data</h1>
+<div class="hero-banner rounded-4 shadow-sm mb-4 p-4">
+    <div class="row align-items-center">
+        <div class="col-lg-8">
+            <span class="badge mb-3">Smart Data Cleaning</span>
+            <h1 class="display-6 fw-bold">Upload, clean, and analyze your CSV in seconds.</h1>
+            <p class="lead text-white-75">Explore your dataset with intuitive previews, actionable cleaning options, and instant visual insights.</p>
+        </div>
+        <div class="col-lg-4 text-lg-end mt-3 mt-lg-0">
+            <a href="#upload-section" class="btn btn-light btn-lg shadow-sm">Get Started <i class="bi bi-arrow-right-short"></i></a>
+        </div>
+    </div>
 </div>
 
-<div class="row">
-    <div class="col-md-8 offset-md-2">
-        <div class="card">
+<div class="row g-4">
+    <div class="col-xl-7">
+        <div class="card shadow-sm" id="upload-section">
             <div class="card-body">
                 <h5 class="card-title">Upload a CSV File</h5>
-                <p class="card-text">Upload a CSV file to clean and analyze your data.</p>
-                
+                <p class="card-text text-muted">Drag and drop or browse to choose the file you want to analyze.</p>
                 <form action="{{ url_for('index') }}" method="POST" enctype="multipart/form-data">
-                    <div class="file-upload mb-3" id="file-upload-area">
+                    <div class="file-upload mb-4" id="file-upload-area">
                         <i class="bi bi-cloud-arrow-up" style="font-size: 2rem;"></i>
                         <p class="mt-2">Drag and drop your CSV file here, or click to browse</p>
                         <input type="file" name="file" id="file-input" class="d-none" accept=".csv" required>
-                        <div id="file-name" class="mt-2 fw-bold"></div>
+                        <div id="file-name" class="mt-2 fw-semibold"></div>
                     </div>
-                    
                     <div class="d-grid gap-2">
-                        <button type="submit" class="btn btn-primary">
-                            <i class="bi bi-upload"></i> Upload and Analyze
+                        <button type="submit" class="btn btn-primary btn-lg">
+                            <i class="bi bi-upload me-2"></i> Upload and Analyze
                         </button>
                     </div>
                 </form>
             </div>
         </div>
-        
-        <div class="card mt-4">
+    </div>
+    <div class="col-xl-5">
+        <div class="card border-start border-4 border-primary shadow-sm">
+            <div class="card-body">
+                <h5 class="card-title">Why use this tool?</h5>
+                <ul class="list-unstyled mt-3">
+                    <li class="mb-3"><i class="bi bi-check-circle-fill text-primary me-2"></i>Fast CSV upload and preview</li>
+                    <li class="mb-3"><i class="bi bi-check-circle-fill text-primary me-2"></i>Missing value cleaning made easy</li>
+                    <li class="mb-3"><i class="bi bi-check-circle-fill text-primary me-2"></i>Beautiful charts and summary cards</li>
+                </ul>
+            </div>
+        </div>
+        <div class="card mt-4 shadow-sm">
             <div class="card-body">
                 <h5 class="card-title">How It Works</h5>
-                <ol>
-                    <li>Upload your CSV file using the form above</li>
-                    <li>View the initial analysis of your data</li>
-                    <li>Clean your data using the provided tools</li>
-                    <li>Download the cleaned data or view visualizations</li>
+                <ol class="mb-0">
+                    <li>Select or drag a CSV file</li>
+                    <li>Review the dataset summary</li>
+                    <li>Apply cleaning, conversion, and filtering tools</li>
+                    <li>Export cleaned data as CSV or JSON</li>
                 </ol>
-                <p class="text-muted">
-                    <small>Note: Your data is processed in your browser and is not stored on our servers.</small>
-                </p>
+                <p class="text-muted mt-3 mb-0"><small>All data is processed securely during your session.</small></p>
             </div>
         </div>
     </div>

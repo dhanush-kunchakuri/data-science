@@ -10,10 +10,15 @@ A user-friendly web application that allows you to upload CSV files, clean the d
   - Handle missing values (drop or fill with mean/median/mode)
   - Automatic detection of data types
   - Summary statistics for numeric and categorical columns
+- **Data Transformation**:
+  - Drop unwanted columns
+  - Convert columns to numeric or datetime
+  - Filter rows with contains/equals/greater/less operators
+  - Sample rows for quick preview
 - **Visualizations**:
   - Distribution plots for numeric columns
   - Correlation heatmap
-- **Export**: Download the cleaned dataset as a CSV file
+- **Export**: Download the cleaned dataset as CSV or JSON
 
 ## Installation
 

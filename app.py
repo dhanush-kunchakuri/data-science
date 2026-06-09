@@ -42,18 +42,15 @@ def index():
                 df = pd.read_csv(file)
                 
                 # Get basic info about the data
-                data_info = {
-                    'shape': df.shape,
-                    'columns': df.columns.tolist(),
-                    'missing_values': df.isnull().sum().to_dict(),
-                    'data_types': df.dtypes.astype(str).to_dict()
-                }
+                data_info = get_data_info(df)
+                data_profile = get_data_profile(df)
                 
                 # Generate basic visualizations
                 plot_paths = generate_visualizations(df)
                 
                 return render_template('analysis.html', 
                                     data_info=data_info, 
+                                    data_profile=data_profile,
                                     plot_paths=plot_paths,
                                     sample_data=df.head(10).to_dict('records'))
                 
@@ -99,6 +96,93 @@ def generate_visualizations(df):
     
     return plot_paths
 
+
+def get_data_info(dataframe):
+    return {
+        'shape': dataframe.shape,
+        'columns': dataframe.columns.tolist(),
+        'missing_values': dataframe.isnull().sum().to_dict(),
+        'data_types': dataframe.dtypes.astype(str).to_dict()
+    }
+
+
+def get_data_profile(dataframe):
+    profile = []
+    for col in dataframe.columns:
+        values = dataframe[col]
+        top_value = ''
+        top_count = 0
+        if not values.mode().empty:
+            top_value = str(values.mode().iloc[0])
+        counts = values.value_counts(dropna=True)
+        if not counts.empty:
+            top_count = int(counts.iloc[0])
+        profile.append({
+            'column': col,
+            'type': str(values.dtype),
+            'unique': int(values.nunique(dropna=True)),
+            'top': top_value,
+            'top_freq': top_count,
+            'missing_pct': round(values.isna().mean() * 100, 2)
+        })
+    return profile
+
+
+@app.route('/transform', methods=['POST'])
+def transform_data():
+    global df
+
+    if df is None:
+        flash('No data to transform. Please upload a file first.')
+        return redirect(url_for('index'))
+
+    try:
+        drop_columns = request.form.getlist('drop_columns')
+        convert_column = request.form.get('convert_column')
+        convert_type = request.form.get('convert_type')
+        filter_column = request.form.get('filter_column')
+        filter_operator = request.form.get('filter_operator')
+        filter_value = request.form.get('filter_value')
+        sample_size = request.form.get('sample_size')
+
+        if drop_columns:
+            df.drop(columns=drop_columns, inplace=True, errors='ignore')
+
+        if convert_column and convert_type:
+            if convert_type == 'numeric':
+                df[convert_column] = pd.to_numeric(df[convert_column], errors='coerce')
+            elif convert_type == 'datetime':
+                df[convert_column] = pd.to_datetime(df[convert_column], errors='coerce')
+
+        if filter_column and filter_operator and filter_value:
+            if filter_operator == 'contains':
+                df = df[df[filter_column].astype(str).str.contains(filter_value, na=False)]
+            elif filter_operator == 'equals':
+                df = df[df[filter_column].astype(str) == filter_value]
+            elif filter_operator == 'greater':
+                df = df[pd.to_numeric(df[filter_column], errors='coerce') > float(filter_value)]
+            elif filter_operator == 'less':
+                df = df[pd.to_numeric(df[filter_column], errors='coerce') < float(filter_value)]
+
+        flash('Data transformation applied successfully!', 'success')
+
+        data_info = get_data_info(df)
+        data_profile = get_data_profile(df)
+        plot_paths = generate_visualizations(df)
+        sample_data = df.head(10).to_dict('records')
+        if sample_size and sample_size.isdigit():
+            sample_data = df.sample(min(int(sample_size), len(df)), random_state=1).to_dict('records')
+
+        return render_template('analysis.html',
+                               data_info=data_info,
+                               data_profile=data_profile,
+                               plot_paths=plot_paths,
+                               sample_data=sample_data)
+    except Exception as e:
+        flash(f'Error transforming data: {str(e)}', 'error')
+        return redirect(url_for('index'))
+
+
 @app.route('/clean', methods=['POST'])
 def clean_data():
     global df
@@ -139,18 +223,15 @@ def clean_data():
         flash('Data cleaned successfully!', 'success')
         
         # Get updated data info
-        data_info = {
-            'shape': df.shape,
-            'columns': df.columns.tolist(),
-            'missing_values': df.isnull().sum().to_dict(),
-            'data_types': df.dtypes.astype(str).to_dict()
-        }
+        data_info = get_data_info(df)
+        data_profile = get_data_profile(df)
         
         # Generate new visualizations
         plot_paths = generate_visualizations(df)
         
         return render_template('analysis.html', 
                             data_info=data_info, 
+                            data_profile=data_profile,
                             plot_paths=plot_paths,
                             sample_data=df.head(10).to_dict('records'))
     
@@ -162,11 +243,23 @@ def clean_data():
 def download_data():
     global df
     if df is not None:
-        # Create a StringIO buffer
+        download_format = request.args.get('format', 'csv')
+
+        if download_format == 'json':
+            buffer = StringIO()
+            buffer.write(df.to_json(orient='records', date_format='iso'))
+            buffer.seek(0)
+            return send_file(
+                buffer,
+                mimetype='application/json',
+                as_attachment=True,
+                download_name='cleaned_data.json'
+            )
+
         buffer = StringIO()
         df.to_csv(buffer, index=False)
         buffer.seek(0)
-        
+
         return send_file(
             buffer,
             mimetype='text/csv',
