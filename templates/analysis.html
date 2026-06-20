@@ -13,6 +13,9 @@
         <a href="{{ url_for('download_data', format='json') }}" class="btn btn-sm btn-outline-secondary me-2">
             <i class="bi bi-file-earmark-code"></i> Download JSON
         </a>
+        <a href="{{ url_for('reset_data') }}" class="btn btn-sm btn-outline-danger me-2">
+            <i class="bi bi-arrow-counterclockwise"></i> Reset Data
+        </a>
         <a href="{{ url_for('index') }}" class="btn btn-sm btn-outline-primary">
             <i class="bi bi-upload"></i> Upload New File
         </a>
@@ -96,6 +99,11 @@
                     </div>
                     <button type="submit" class="btn btn-primary">
                         <i class="bi bi-funnel me-2"></i> Clean Data
+                    </button>
+                </form>
+                <form action="{{ url_for('auto_clean_data') }}" method="POST" class="mt-3">
+                    <button type="submit" class="btn btn-outline-success">
+                        <i class="bi bi-lightning-fill me-2"></i> Quick Auto Clean
                     </button>
                 </form>
             </div>
@@ -266,6 +274,16 @@
                 </div>
             </div>
         {% endif %}
+        {% for key, path in plot_paths.items() %}
+            {% if key.startswith('category_') %}
+                <div class="col-lg-6">
+                    <div class="plot-container">
+                        <h6 class="mb-3">Category Breakdown</h6>
+                        <img src="{{ url_for('static', filename=path.replace('static/', '')) }}" alt="Category Plot" class="plot-img">
+                    </div>
+                </div>
+            {% endif %}
+        {% endfor %}
     </div>
 {% endif %}
 
@@ -321,10 +339,36 @@
                 </ul>
                 <div class="tab-content p-3 border border-top-0 rounded-bottom" id="statsTabContent">
                     <div class="tab-pane fade show active" id="numeric" role="tabpanel">
-                        <p class="text-muted">Numeric columns statistics will appear here after analysis.</p>
+                        <ul class="list-unstyled mb-0">
+                            <li><strong>Numeric columns:</strong> {{ data_summary.numeric_count }}</li>
+                            <li><strong>Total columns:</strong> {{ data_info.shape[1] }}</li>
+                            <li><strong>Total rows:</strong> {{ data_info.shape[0] }}</li>
+                        </ul>
+                        {% if data_summary.numeric_cols %}
+                            <p class="mt-3 mb-1"><strong>Numeric fields:</strong></p>
+                            <ul class="small text-muted mb-0">
+                                {% for col in data_summary.numeric_cols %}
+                                    <li>{{ col }}</li>
+                                {% endfor %}
+                            </ul>
+                        {% else %}
+                            <p class="text-muted mb-0">No numeric columns available.</p>
+                        {% endif %}
                     </div>
                     <div class="tab-pane fade" id="categorical" role="tabpanel">
-                        <p class="text-muted">Categorical columns statistics will appear here after analysis.</p>
+                        <ul class="list-unstyled mb-0">
+                            <li><strong>Categorical columns:</strong> {{ data_summary.categorical_count }}</li>
+                            <li><strong>Total missing values:</strong> {{ data_summary.total_missing }}</li>
+                            <li><strong>Missing share:</strong> {{ data_summary.missing_pct }}%</li>
+                        </ul>
+                        {% if data_summary.top_missing %}
+                            <p class="mt-3 mb-1"><strong>Top missing columns:</strong></p>
+                            <ul class="small text-muted mb-0">
+                                {% for column, count in data_summary.top_missing.items() %}
+                                    <li>{{ column }} — {{ count }} missing</li>
+                                {% endfor %}
+                            </ul>
+                        {% endif %}
                     </div>
                 </div>
             </div>

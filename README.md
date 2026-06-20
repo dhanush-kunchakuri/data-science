@@ -8,6 +8,7 @@ A user-friendly web application that allows you to upload CSV files, clean the d
 - **Data Preview**: View the first 10 rows of your dataset
 - **Data Cleaning**:
   - Handle missing values (drop or fill with mean/median/mode)
+  - Quick auto-clean to fill missing numeric and categorical values
   - Automatic detection of data types
   - Summary statistics for numeric and categorical columns
 - **Data Transformation**:

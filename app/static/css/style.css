@@ -1,0 +1,58 @@
+:root {
+  --bg-color: #f8f9fa;
+  --surface: #ffffff;
+  --text: #222222;
+  --muted: #6c757d;
+}
+
+body {
+  background: var(--bg-color);
+  color: var(--text);
+}
+
+.app-shell {
+  display: grid;
+  grid-template-columns: 260px 1fr;
+  min-height: 100vh;
+}
+
+.sidebar {
+  background: #0d6efd;
+  color: #ffffff;
+  padding: 2rem 1rem;
+}
+
+.sidebar .nav-link {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.sidebar .nav-link.active,
+.sidebar .nav-link:hover {
+  color: #ffffff;
+}
+
+.main-content {
+  padding: 2rem;
+}
+
+.card {
+  border: none;
+}
+
+.dark-mode {
+  --bg-color: #121212;
+  --surface: #1f1f1f;
+  --text: #e9ecef;
+  --muted: #adb5bd;
+  background: var(--bg-color);
+  color: var(--text);
+}
+
+.dark-mode .sidebar {
+  background: #212529;
+}
+
+.dark-mode .card {
+  background: #1f1f1f;
+  border-color: #2c2c2c;
+}

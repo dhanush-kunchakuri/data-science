@@ -1,0 +1,37 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row gy-4">
+        <div class="col-12">
+            <h2>Analysis Summary</h2>
+        </div>
+        <div class="col-lg-4">
+            <div class="card p-4 shadow-sm">
+                <h5>Key Performance Indicators</h5>
+                <ul class="list-group list-group-flush mt-3">
+                    {% for item in data.kpis %}
+                    <li class="list-group-item">
+                        <strong>{{ item.name }}</strong><br>
+                        Mean: {{ item.mean }} | Max: {{ item.max }}
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+        <div class="col-lg-8">
+            <div class="card p-4 shadow-sm">
+                <h5>AI Insights</h5>
+                <ul class="list-group list-group-flush mt-3">
+                    {% for insight in data.insight_cards %}
+                    <li class="list-group-item">
+                        <strong>{{ insight.title }}</strong><br>
+                        {{ insight.detail }}
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

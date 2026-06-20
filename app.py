@@ -51,8 +51,10 @@ def index():
                 return render_template('analysis.html', 
                                     data_info=data_info, 
                                     data_profile=data_profile,
+                                    data_summary=get_data_summary(df),
                                     plot_paths=plot_paths,
-                                    sample_data=df.head(10).to_dict('records'))
+                                    sample_data=df.head(10).to_dict('records'),
+                                    active_page='analysis')
                 
             except Exception as e:
                 flash(f'Error processing file: {str(e)}')
@@ -61,7 +63,7 @@ def index():
             flash('Please upload a CSV file')
             return redirect(request.url)
     
-    return render_template('index.html')
+    return render_template('index.html', active_page='home')
 
 def generate_visualizations(df):
     """Generate basic visualizations for the uploaded data"""
@@ -83,7 +85,7 @@ def generate_visualizations(df):
         plot_paths['distribution'] = dist_plot_path
         plt.close()
     
-    # 2. Correlation heatmap (if enough numeric columns)
+    
     if len(numeric_cols) > 2:
         plt.figure(figsize=(10, 8))
         correlation = df[numeric_cols].corr()
@@ -94,6 +96,22 @@ def generate_visualizations(df):
         plot_paths['correlation'] = corr_plot_path
         plt.close()
     
+    # 3. Categorical top-value bar chart
+    categorical_cols = df.select_dtypes(include=['object', 'category']).columns
+    if len(categorical_cols) > 0:
+        for i, col in enumerate(categorical_cols[:2]):
+            plt.figure(figsize=(8, 5))
+            top_counts = df[col].value_counts().nlargest(6)
+            sns.barplot(x=top_counts.values, y=top_counts.index, palette='crest')
+            plt.title(f'Top Categories in {col}')
+            plt.xlabel('Count')
+            plt.ylabel(col)
+            plt.tight_layout()
+            cat_plot_path = f"static/plots/category_{col}_{timestamp}.png"
+            plt.savefig(cat_plot_path)
+            plot_paths[f'category_{col}'] = cat_plot_path
+            plt.close()
+
     return plot_paths
 
 
@@ -126,6 +144,48 @@ def get_data_profile(dataframe):
             'missing_pct': round(values.isna().mean() * 100, 2)
         })
     return profile
+
+
+def get_data_summary(dataframe):
+    numeric_cols = dataframe.select_dtypes(include=['number']).columns.tolist()
+    categorical_cols = dataframe.select_dtypes(include=['object', 'category']).columns.tolist()
+    total_missing = int(dataframe.isna().sum().sum())
+    missing_pct = round(total_missing / (dataframe.shape[0] * dataframe.shape[1]) * 100, 2) if dataframe.size else 0
+    top_missing = dataframe.isna().sum().sort_values(ascending=False).head(3).to_dict()
+    return {
+        'numeric_count': len(numeric_cols),
+        'categorical_count': len(categorical_cols),
+        'total_missing': total_missing,
+        'missing_pct': missing_pct,
+        'top_missing': top_missing,
+        'numeric_cols': numeric_cols,
+        'categorical_cols': categorical_cols
+    }
+
+
+def render_analysis_page(dataframe, sample_data=None):
+    data_info = get_data_info(dataframe)
+    data_profile = get_data_profile(dataframe)
+    data_summary = get_data_summary(dataframe)
+    plot_paths = generate_visualizations(dataframe)
+    if sample_data is None:
+        sample_data = dataframe.head(10).to_dict('records')
+    return render_template('analysis.html',
+                           data_info=data_info,
+                           data_profile=data_profile,
+                           data_summary=data_summary,
+                           plot_paths=plot_paths,
+                           sample_data=sample_data,
+                           active_page='analysis')
+
+
+@app.route('/analysis')
+def analysis():
+    global df
+    if df is None:
+        flash('No data available. Please upload a CSV file first.', 'error')
+        return redirect(url_for('index'))
+    return render_analysis_page(df)
 
 
 @app.route('/transform', methods=['POST'])
@@ -176,8 +236,10 @@ def transform_data():
         return render_template('analysis.html',
                                data_info=data_info,
                                data_profile=data_profile,
+                               data_summary=get_data_summary(df),
                                plot_paths=plot_paths,
-                               sample_data=sample_data)
+                               sample_data=sample_data,
+                               active_page='analysis')
     except Exception as e:
         flash(f'Error transforming data: {str(e)}', 'error')
         return redirect(url_for('index'))
@@ -232,12 +294,45 @@ def clean_data():
         return render_template('analysis.html', 
                             data_info=data_info, 
                             data_profile=data_profile,
+                            data_summary=get_data_summary(df),
                             plot_paths=plot_paths,
-                            sample_data=df.head(10).to_dict('records'))
+                            sample_data=df.head(10).to_dict('records'),
+                            active_page='analysis')
     
     except Exception as e:
         flash(f'Error cleaning data: {str(e)}', 'error')
         return redirect(url_for('index'))
+
+@app.route('/auto-clean', methods=['POST'])
+def auto_clean_data():
+    global df
+    if df is None:
+        flash('No data to clean. Please upload a file first.', 'error')
+        return redirect(url_for('index'))
+
+    try:
+        numeric_cols = df.select_dtypes(include=['int64', 'float64']).columns
+        for col in numeric_cols:
+            if df[col].isna().any():
+                df[col].fillna(df[col].mean(), inplace=True)
+
+        cat_cols = df.select_dtypes(include=['object', 'category']).columns
+        for col in cat_cols:
+            if df[col].isna().any():
+                df[col].fillna(df[col].mode()[0], inplace=True)
+
+        flash('Auto clean applied successfully!', 'success')
+        return render_analysis_page(df)
+    except Exception as e:
+        flash(f'Error applying auto clean: {str(e)}', 'error')
+        return redirect(url_for('index'))
+
+@app.route('/reset')
+def reset_data():
+    global df
+    df = None
+    flash('Dataset reset. Upload a new file to begin again.', 'success')
+    return redirect(url_for('index'))
 
 @app.route('/download')
 def download_data():

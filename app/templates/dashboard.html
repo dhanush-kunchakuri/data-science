@@ -1,0 +1,36 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>Analytics Dashboard</h1>
+        <a href="{{ url_for('dashboard.export_csv') }}" class="btn btn-outline-secondary">Download CSV</a>
+    </div>
+    <div class="row gy-4">
+        <div class="col-lg-8">
+            <div class="card h-100 p-4">
+                <h4>Upload Dataset</h4>
+                <form action="{{ url_for('dashboard.upload') }}" method="POST" enctype="multipart/form-data">
+                    <div class="mb-3">
+                        <input class="form-control" type="file" name="file" accept=".csv,.xlsx,.xls">
+                    </div>
+                    <button class="btn btn-primary">Upload</button>
+                </form>
+            </div>
+        </div>
+        <div class="col-lg-4">
+            <div class="card h-100 p-4">
+                <h4>Saved Sessions</h4>
+                <ul class="list-group list-group-flush">
+                    {% for session in sessions %}
+                        <li class="list-group-item">
+                            <strong>{{ session.filename }}</strong><br>
+                            <small>{{ session.uploaded_at.strftime('%Y-%m-%d %H:%M') }}</small>
+                        </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
